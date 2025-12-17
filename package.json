@@ -1,0 +1,40 @@
+{
+  "name": "@stratos-wallet/sdk",
+  "version": "1.0.0",
+  "description": "SDK for integrating with Stratos Wallet - multi-chain wallet supporting EVM, Solana, Bitcoin, Tron, TON, and Canton",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "wallet",
+    "stratos",
+    "canton",
+    "multi-chain",
+    "ethereum",
+    "solana",
+    "bitcoin",
+    "web3"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}
