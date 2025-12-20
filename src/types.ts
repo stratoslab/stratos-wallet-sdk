@@ -122,6 +122,8 @@ export interface CantonQueryParams {
   templateId: string;
   /** Optional filter criteria for the query */
   filter?: Record<string, unknown>;
+  /** Optional additional parties to read as (e.g., public party for visibility) */
+  readAs?: string[];
 }
 
 /** Parameters for creating a Canton contract */
@@ -472,6 +474,34 @@ export interface BroadcastTronTransactionResult {
 }
 
 // ============================================
+// Canton User Rights
+// ============================================
+
+/** User right type for Canton ledger */
+export type CantonUserRight =
+  | { type: 'actAs'; party: string }
+  | { type: 'readAs'; party: string }
+  | { type: 'participantAdmin' };
+
+/** Parameters for granting user rights */
+export interface GrantUserRightsParams {
+  /** User ID to grant rights to (typically the party ID) */
+  userId: string;
+  /** Rights to grant */
+  rights: CantonUserRight[];
+}
+
+/** Result from granting user rights */
+export interface GrantUserRightsResult {
+  /** Whether the operation succeeded */
+  success: boolean;
+  /** The user ID that was granted rights */
+  userId: string;
+  /** The rights that were granted */
+  grantedRights: CantonUserRight[];
+}
+
+// ============================================
 // Generic Message Signing
 // ============================================
 
@@ -635,4 +665,6 @@ export interface ParentBridgeCallbacks {
   triggerTronSmartContract?: (params: TriggerTronSmartContractParams) => Promise<TriggerTronSmartContractResult>;
   /** Broadcast a signed TRON transaction */
   broadcastTronTransaction?: (params: BroadcastTronTransactionParams) => Promise<BroadcastTronTransactionResult>;
+  /** Grant user rights on the Canton ledger (e.g., readAs for public party) */
+  grantUserRights?: (params: GrantUserRightsParams) => Promise<GrantUserRightsResult>;
 }

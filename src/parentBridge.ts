@@ -20,6 +20,7 @@ import type {
   SignEVMTransactionParams,
   SendEVMTransactionParams,
   SignTypedDataParams,
+  GrantUserRightsParams,
 } from './types';
 
 export class ParentBridge {
@@ -186,6 +187,15 @@ export class ParentBridge {
         }
         const typedDataParams = params as SignTypedDataParams;
         return this.callbacks.signTypedData(typedDataParams);
+      }
+
+      // Canton User Rights
+      case 'grantUserRights': {
+        if (!this.callbacks.grantUserRights) {
+          throw new Error('User rights granting not supported');
+        }
+        const grantParams = params as GrantUserRightsParams;
+        return this.callbacks.grantUserRights(grantParams);
       }
 
       default:

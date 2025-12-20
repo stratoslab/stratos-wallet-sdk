@@ -47,6 +47,9 @@ import type {
   TriggerTronSmartContractResult,
   BroadcastTronTransactionParams,
   BroadcastTronTransactionResult,
+  // Canton User Rights
+  GrantUserRightsParams,
+  GrantUserRightsResult,
 } from './types';
 
 export class StratosSDK {
@@ -458,6 +461,16 @@ export class StratosSDK {
    */
   async cantonExercise<T = unknown>(params: CantonExerciseParams): Promise<CantonExerciseResult<T>> {
     return this.request<CantonExerciseResult<T>>('cantonExercise', params);
+  }
+
+  /**
+   * Grant user rights on the Canton ledger
+   * Used to grant readAs/actAs rights to users (e.g., readAs public party during onboarding)
+   * @param params Grant parameters including userId and rights to grant
+   * @returns The grant result
+   */
+  async grantUserRights(params: GrantUserRightsParams): Promise<GrantUserRightsResult> {
+    return this.request<GrantUserRightsResult>('grantUserRights', params);
   }
 
   // ============================================
