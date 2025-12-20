@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stratos Wallet SDK Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 { color: #fff; margin-bottom: 8px; }
+    .subtitle { color: #888; margin-bottom: 24px; }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2 .icon { font-size: 20px; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status.connected { background: #1a3d1a; color: #4ade80; }
+    .status.disconnected { background: #3d1a1a; color: #f87171; }
+    .status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #333;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #888; }
+    .info-value { color: #fff; font-family: monospace; }
+    .address-item {
+      background: #252525;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    .address-item .chain {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .address-item .addr {
+      font-family: monospace;
+      font-size: 13px;
+      color: #60a5fa;
+      word-break: break-all;
+    }
+    .btn {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .btn-secondary {
+      background: #333;
+      color: #fff;
+    }
+    .btn-secondary:hover { background: #444; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .contract-item {
+      background: #252525;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    .contract-item .template {
+      font-size: 12px;
+      color: #a78bfa;
+      margin-bottom: 4px;
+    }
+    .contract-item .id {
+      font-family: monospace;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+    .contract-item .payload {
+      font-family: monospace;
+      font-size: 12px;
+      color: #e0e0e0;
+      background: #1a1a1a;
+      padding: 8px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .log {
+      background: #0a0a0a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log-entry { margin-bottom: 4px; }
+    .log-entry.info { color: #60a5fa; }
+    .log-entry.success { color: #4ade80; }
+    .log-entry.error { color: #f87171; }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .input-group input {
+      flex: 1;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: monospace;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .empty-state {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stratos Wallet SDK Demo</h1>
+  <p class="subtitle">Example integration showing wallet addresses, Canton party ID, and transaction signing</p>
+
+  <!-- Connection Status -->
+  <div class="card">
+    <h2><span class="icon">🔌</span> Connection</h2>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div id="connection-status" class="status disconnected">
+        <span class="dot"></span>
+        <span>Disconnected</span>
+      </div>
+      <div class="btn-group">
+        <button id="btn-connect" class="btn">Connect Wallet</button>
+        <button id="btn-disconnect" class="btn btn-secondary" disabled>Disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Info -->
+  <div class="card">
+    <h2><span class="icon">👤</span> User Information</h2>
+    <div id="user-info">
+      <div class="empty-state">Connect wallet to view user info</div>
+    </div>
+  </div>
+
+  <!-- Wallet Addresses -->
+  <div class="card">
+    <h2><span class="icon">📍</span> Wallet Addresses</h2>
+    <div id="addresses-list">
+      <div class="empty-state">Connect wallet to view addresses</div>
+    </div>
+  </div>
+
+  <!-- Canton Info -->
+  <div class="card">
+    <h2><span class="icon">🏛️</span> Canton Network</h2>
+    <div id="canton-info">
+      <div class="empty-state">Connect wallet to view Canton info</div>
+    </div>
+  </div>
+
+  <!-- Canton Contracts -->
+  <div class="card">
+    <h2><span class="icon">📜</span> Canton Contracts</h2>
+    <div class="input-group">
+      <input type="text" id="template-id" placeholder="Template ID (e.g., Splice.Amulet:Amulet)">
+      <button id="btn-query" class="btn btn-secondary" disabled>Query Contracts</button>
+    </div>
+    <div id="contracts-list">
+      <div class="empty-state">Enter a template ID and click Query to search contracts</div>
+    </div>
+  </div>
+
+  <!-- Message Signing -->
+  <div class="card">
+    <h2><span class="icon">✍️</span> Sign Message</h2>
+    <div class="input-group">
+      <input type="text" id="message-input" placeholder="Enter message to sign">
+      <select id="chain-select" style="background: #252525; border: 1px solid #333; border-radius: 8px; padding: 10px; color: #fff;">
+        <option value="evm">EVM</option>
+        <option value="svm">Solana</option>
+        <option value="canton">Canton</option>
+      </select>
+      <button id="btn-sign" class="btn btn-secondary" disabled>Sign</button>
+    </div>
+    <div id="signature-result" class="empty-state">Signature will appear here</div>
+  </div>
+
+  <!-- EVM Transaction -->
+  <div class="card">
+    <h2><span class="icon">💸</span> Send EVM Transaction</h2>
+    <div class="input-group">
+      <input type="text" id="tx-to" placeholder="Recipient address (0x...)">
+    </div>
+    <div class="input-group">
+      <input type="text" id="tx-amount" placeholder="Amount in ETH (e.g., 0.01)">
+      <select id="tx-chain" style="background: #252525; border: 1px solid #333; border-radius: 8px; padding: 10px; color: #fff;">
+        <option value="1">Ethereum Mainnet</option>
+        <option value="11155111">Sepolia Testnet</option>
+        <option value="8453">Base</option>
+      </select>
+    </div>
+    <button id="btn-send-tx" class="btn" disabled>Sign & Send Transaction</button>
+    <div id="tx-result" style="margin-top: 12px;" class="empty-state"></div>
+  </div>
+
+  <!-- Activity Log -->
+  <div class="card">
+    <h2><span class="icon">📋</span> Activity Log</h2>
+    <div id="log" class="log">
+      <div class="log-entry info">[INFO] SDK Demo initialized</div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

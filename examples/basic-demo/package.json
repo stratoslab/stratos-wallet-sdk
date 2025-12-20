@@ -1,0 +1,18 @@
+{
+  "name": "stratos-wallet-sdk-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo app for Stratos Wallet SDK",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@stratos-wallet/sdk": "file:../.."
+  }
+}
