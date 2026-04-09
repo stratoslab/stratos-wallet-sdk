@@ -132,6 +132,8 @@ export interface CantonCreateParams {
   templateId: string;
   /** Contract payload/arguments */
   payload: Record<string, unknown>;
+  /** Optional additional parties to act as (for multi-signatory contracts) */
+  actAs?: string[];
 }
 
 /** Parameters for exercising a choice on a Canton contract */
@@ -144,6 +146,10 @@ export interface CantonExerciseParams {
   choice: string;
   /** Arguments for the choice */
   argument: Record<string, unknown>;
+  /** Optional additional parties to read as (e.g., public party for cross-party visibility) */
+  readAs?: string[];
+  /** Optional additional parties to act as (e.g., Transfer requires both sender and recipient) */
+  actAs?: string[];
 }
 
 /** Result from creating a contract */
@@ -172,8 +178,8 @@ export interface SignMessageParams {
 
 /** EVM transaction request */
 export interface EVMTransactionRequest {
-  /** Target contract or recipient address */
-  to: string;
+  /** Target contract or recipient address (omit for contract deployment) */
+  to?: string;
   /** Value in wei (as hex string, e.g., "0x0") */
   value?: string;
   /** Contract call data (hex encoded) */
@@ -502,6 +508,44 @@ export interface GrantUserRightsResult {
 }
 
 // ============================================
+// EVM Read-Only Call (eth_call, eth_getBalance)
+// ============================================
+
+/** Parameters for a read-only EVM RPC call */
+export interface EVMCallParams {
+  /** RPC method (e.g., 'eth_call', 'eth_getBalance') */
+  method: string;
+  /** RPC params array */
+  params: unknown[];
+  /** Chain ID to route to the correct RPC */
+  chainId: number;
+}
+
+/** Result from a read-only EVM RPC call */
+export interface EVMCallResult {
+  result: string;
+}
+
+// ============================================
+// EVM Transaction Receipt
+// ============================================
+
+/** Parameters for getting a transaction receipt */
+export interface GetTransactionReceiptParams {
+  txHash: string;
+  chainId: number;
+}
+
+/** Transaction receipt result */
+export interface TransactionReceiptResult {
+  transactionHash: string;
+  contractAddress: string | null;
+  status: string;
+  blockNumber: string;
+  gasUsed: string;
+}
+
+// ============================================
 // Generic Message Signing
 // ============================================
 
@@ -614,7 +658,7 @@ export interface ParentBridgeCallbacks {
   /** Get user's transaction history */
   getTransactions: () => Transaction[];
   /** Get pending transfer offers (Canton) */
-  getTransferOffers: () => TransferOffer[];
+  getTransferOffers: () => TransferOffer[] | Promise<TransferOffer[]>;
   /** Execute a transfer */
   transfer: (params: TransferParams) => Promise<TransferResult>;
   /** Sign a message */
@@ -667,4 +711,8 @@ export interface ParentBridgeCallbacks {
   broadcastTronTransaction?: (params: BroadcastTronTransactionParams) => Promise<BroadcastTronTransactionResult>;
   /** Grant user rights on the Canton ledger (e.g., readAs for public party) */
   grantUserRights?: (params: GrantUserRightsParams) => Promise<GrantUserRightsResult>;
+  /** Get an EVM transaction receipt */
+  getTransactionReceipt?: (params: GetTransactionReceiptParams) => Promise<TransactionReceiptResult>;
+  /** Read-only EVM RPC call (eth_call, eth_getBalance, etc.) */
+  evmCall?: (params: EVMCallParams) => Promise<EVMCallResult>;
 }

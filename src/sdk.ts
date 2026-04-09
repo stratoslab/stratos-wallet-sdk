@@ -50,6 +50,9 @@ import type {
   // Canton User Rights
   GrantUserRightsParams,
   GrantUserRightsResult,
+  // EVM Read-Only Call
+  EVMCallParams,
+  EVMCallResult,
 } from './types';
 
 export class StratosSDK {
@@ -216,6 +219,14 @@ export class StratosSDK {
 
   isConnected(): boolean {
     return this.connected;
+  }
+
+  /**
+   * Get the current network mode from the wallet
+   * @returns 'mainnet' or 'testnet'
+   */
+  async getNetwork(): Promise<'mainnet' | 'testnet'> {
+    return this.request<'mainnet' | 'testnet'>('getNetwork');
   }
 
   // ============================================
@@ -415,6 +426,73 @@ export class StratosSDK {
     return this.request<BroadcastTronTransactionResult>('broadcastTronTransaction', params);
   }
 
+  /**
+   * Get an EVM transaction receipt (used to poll for contract deployment address)
+   * @param txHash Transaction hash
+   * @param chainId Chain ID
+   * @returns Transaction receipt
+   */
+  async getTransactionReceipt(txHash: string, chainId: number): Promise<any> {
+    return this.request<any>('getTransactionReceipt', { txHash, chainId });
+  }
+
+  /**
+   * Read-only EVM RPC call (eth_call, eth_getBalance, etc.)
+   * Routed through the portal to the appropriate RPC endpoint.
+   * @param params RPC method, params, and chainId
+   * @returns Raw RPC result string
+   */
+  async evmCall(params: EVMCallParams): Promise<EVMCallResult> {
+    return this.request<EVMCallResult>('evmCall', params);
+  }
+
+  /**
+   * Get portal configuration values relevant to mini-apps
+   * Returns config keys like usdcTemplateId, etc.
+   */
+  async getConfig(): Promise<Record<string, string>> {
+    return this.request<Record<string, string>>('getConfig');
+  }
+
+  /**
+   * Accept pending Splice TransferOffer contracts for the bridge operator.
+   * Used by auto-accept to process incoming CC transfers to the bridge.
+   */
+  async acceptBridgeTransferOffers(): Promise<{ accepted: number; errors: string[]; ccBalance?: string }> {
+    return this.request<{ accepted: number; errors: string[]; ccBalance?: string }>('acceptBridgeOffers');
+  }
+
+  /**
+   * Create a Splice TransferOffer from BridgeOperator to a user (CC release).
+   * Used in the EVM→CC bridge flow after the bridge processes the request.
+   * @param params Amount and recipient party for the CC release
+   * @returns The created contract ID
+   */
+  async bridgeReleaseCC(params: { amount: string; recipientParty: string }): Promise<{ contractId: string }> {
+    return this.request<{ contractId: string }>('bridgeReleaseCC', params);
+  }
+
+  /**
+   * Transfer USDCHolding from BridgeOperator to a user on Canton.
+   * Used in the CC→USDC (Canton same-chain) swap flow.
+   * @param params Amount and recipient party for the USDC release
+   * @returns The transferred contract ID
+   */
+  async bridgeReleaseUSDC(params: { amount: string; recipientParty: string }): Promise<{ contractId: string }> {
+    return this.request<{ contractId: string }>('bridgeReleaseUSDC', params);
+  }
+
+  /**
+   * Generic API proxy — call any backend endpoint through the portal.
+   * Allows mini-apps to use backend APIs without adding SDK methods per endpoint.
+   * @param path API path (e.g. '/api/canton/bridge-release-cc')
+   * @param body JSON body to POST
+   * @returns The response data (parsed JSON)
+   */
+  async callAPI<T = unknown>(path: string, body?: Record<string, unknown>): Promise<T> {
+    return this.request<T>('callAPI', { path, body: body || {} });
+  }
+
   // ============================================
   // Canton-Specific
   // ============================================
@@ -426,6 +504,14 @@ export class StratosSDK {
 
   async getTransferOffers(): Promise<TransferOffer[]> {
     return this.request<TransferOffer[]>('getTransferOffers');
+  }
+
+  /**
+   * Accept all pending transfer offers for the current user.
+   * Used at the end of swap flows to ensure CC lands in the wallet.
+   */
+  async acceptAllOffers(): Promise<{ accepted: number }> {
+    return this.request<{ accepted: number }>('acceptAllOffers');
   }
 
   async acceptTransferOffer(contractId: string): Promise<TransferResult> {
