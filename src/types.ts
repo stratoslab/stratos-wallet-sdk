@@ -629,8 +629,16 @@ export type EVMChainId = typeof EVM_CHAINS[keyof typeof EVM_CHAINS];
 // ============================================
 
 export interface SDKConfig {
-  /** Parent origin URL (default: auto-detect) */
+  /** Transport mode: 'iframe' (default, postMessage) or 'api' (HTTP with API key) */
+  mode?: 'iframe' | 'api';
+  /** Parent origin URL (default: auto-detect) — iframe mode only */
   parentOrigin?: string;
+  /** Base URL of the portal (e.g. 'https://portal.example.com') — api mode only */
+  baseUrl?: string;
+  /** SDK API key (cws_ prefix) — api mode only */
+  apiKey?: string;
+  /** SDK API secret (hex) — api mode only */
+  apiSecret?: string;
   /** Request timeout in ms (default: 30000) */
   timeout?: number;
   /** Enable debug logging */

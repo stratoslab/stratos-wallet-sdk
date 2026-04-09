@@ -56,7 +56,11 @@ import type {
 } from './types';
 
 export class StratosSDK {
+  private mode: 'iframe' | 'api';
   private parentOrigin: string;
+  private baseUrl: string;
+  private apiKey: string;
+  private apiSecret: string;
   private timeout: number;
   private debug: boolean;
   private connected: boolean = false;
@@ -70,16 +74,27 @@ export class StratosSDK {
   }> = new Map();
 
   constructor(config: SDKConfig = {}) {
-    this.parentOrigin = config.parentOrigin || this.detectParentOrigin();
+    this.mode = config.mode || 'iframe';
+    this.parentOrigin = config.parentOrigin || (this.mode === 'iframe' ? this.detectParentOrigin() : '');
+    this.baseUrl = (config.baseUrl || '').replace(/\/$/, '');
+    this.apiKey = config.apiKey || '';
+    this.apiSecret = config.apiSecret || '';
     this.timeout = config.timeout || 30000;
     this.debug = config.debug || false;
 
-    // Only setup if we're in an iframe
-    if (window.parent !== window) {
-      window.addEventListener('message', this.handleMessage.bind(this));
-      this.log('StratosSDK initialized', { parentOrigin: this.parentOrigin });
+    if (this.mode === 'api') {
+      if (!this.baseUrl || !this.apiKey || !this.apiSecret) {
+        throw new Error('API mode requires baseUrl, apiKey, and apiSecret');
+      }
+      this.log('StratosSDK initialized in API mode', { baseUrl: this.baseUrl });
     } else {
-      this.log('Not in iframe, StratosSDK will not function');
+      // Only setup if we're in an iframe
+      if (typeof window !== 'undefined' && window.parent !== window) {
+        window.addEventListener('message', this.handleMessage.bind(this));
+        this.log('StratosSDK initialized', { parentOrigin: this.parentOrigin });
+      } else {
+        this.log('Not in iframe, StratosSDK iframe mode will not function');
+      }
     }
   }
 
@@ -107,8 +122,75 @@ export class StratosSDK {
   }
 
   private request<T>(method: string, params?: unknown): Promise<T> {
+    if (this.mode === 'api') {
+      return this.apiRequest<T>(method, params);
+    }
+    return this.iframeRequest<T>(method, params);
+  }
+
+  /** HTTP API transport — maps SDK methods to /api/sdk/* endpoints */
+  private async apiRequest<T>(method: string, params?: unknown): Promise<T> {
+    const methodMap: Record<string, { path: string; httpMethod: string }> = {
+      getUser: { path: '/api/sdk/addresses', httpMethod: 'GET' },
+      getAddresses: { path: '/api/sdk/addresses', httpMethod: 'GET' },
+      getAssets: { path: '/api/sdk/balance', httpMethod: 'GET' },
+      getTransactions: { path: '/api/sdk/transactions', httpMethod: 'GET' },
+      transfer: { path: '/api/sdk/transfer', httpMethod: 'POST' },
+      signMessage: { path: '/api/sdk/sign', httpMethod: 'POST' },
+      signEVMTransaction: { path: '/api/sdk/sign', httpMethod: 'POST' },
+      sendEVMTransaction: { path: '/api/sdk/sign', httpMethod: 'POST' },
+      cantonQuery: { path: '/api/sdk/canton/query', httpMethod: 'POST' },
+      cantonCreate: { path: '/api/sdk/canton/create', httpMethod: 'POST' },
+      cantonExercise: { path: '/api/sdk/canton/exercise', httpMethod: 'POST' },
+    };
+
+    const endpoint = methodMap[method];
+    if (!endpoint) {
+      throw new Error(`Method '${method}' not supported in API mode`);
+    }
+
+    const headers: Record<string, string> = {
+      'X-API-Key': this.apiKey,
+      'X-API-Secret': this.apiSecret,
+      'Content-Type': 'application/json'
+    };
+
+    let url = `${this.baseUrl}${endpoint.path}`;
+
+    const fetchOpts: RequestInit = { method: endpoint.httpMethod, headers };
+
+    if (endpoint.httpMethod === 'GET' && params && typeof params === 'object') {
+      const qp = new URLSearchParams();
+      for (const [k, v] of Object.entries(params as Record<string, unknown>)) {
+        if (v !== undefined) qp.set(k, String(v));
+      }
+      const qs = qp.toString();
+      if (qs) url += `?${qs}`;
+    } else if (endpoint.httpMethod === 'POST' && params) {
+      fetchOpts.body = JSON.stringify(params);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    fetchOpts.signal = controller.signal;
+
+    try {
+      this.log('API request', { method, url });
+      const res = await fetch(url, fetchOpts);
+      const data = await res.json() as { success: boolean; data?: T; error?: string };
+      if (!data.success) {
+        throw new Error(data.error || `API error: ${res.status}`);
+      }
+      return data.data as T;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /** iframe postMessage transport (original) */
+  private iframeRequest<T>(method: string, params?: unknown): Promise<T> {
     return new Promise((resolve, reject) => {
-      if (window.parent === window) {
+      if (typeof window === 'undefined' || window.parent === window) {
         reject(new Error('Not in iframe'));
         return;
       }
