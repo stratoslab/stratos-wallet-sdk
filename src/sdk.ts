@@ -576,6 +576,35 @@ export class StratosSDK {
   }
 
   // ============================================
+  // Portal Capabilities
+  // ============================================
+
+  /**
+   * Ask the portal to issue a signed capability token for a scoped action.
+   *
+   * The portal checks the caller's authority (via D1 admin flags) and mints
+   * a short-lived RS256 JWT. Apps forward the token to their backend, which
+   * verifies against the portal's JWKS. The private signing key never leaves
+   * the portal, so a compromised app cannot forge tokens for other users.
+   *
+   * @param params.action     e.g. 'install-dar'
+   * @param params.workflowId optional — scopes the token to one workflow
+   * @returns the JWT string (to be sent as `Authorization: Bearer <token>`)
+   */
+  async getCapability(params: { action: string; workflowId?: string | null }): Promise<string> {
+    const body: Record<string, unknown> = { action: params.action };
+    if (params.workflowId) body.workflowId = params.workflowId;
+    const res = await this.callAPI<{ token?: string }>(
+      '/api/authority/issue-capability',
+      body,
+    );
+    if (!res || typeof res.token !== 'string') {
+      throw new Error('Portal did not return a capability token');
+    }
+    return res.token;
+  }
+
+  // ============================================
   // Canton-Specific
   // ============================================
 
